@@ -532,4 +532,100 @@
         function updateStats() {
             const boidCountEl = document.getElementById('boid-count');
             const orderParamEl = document.getElementById('order-param');
-            const avgSpeedEl = document.getElementById('avg-spe
+            const avgSpeedEl = document.getElementById('avg-speed');
+            
+            if (!boidCountEl || !orderParamEl || !avgSpeedEl || boids.length === 0) return;
+            
+            boidCountEl.textContent = boids.length;
+            
+            // 集団運動度の計算
+            let avgVx = 0, avgVy = 0, avgSpeed = 0;
+            for (let boid of boids) {
+                avgVx += boid.velocity.x;
+                avgVy += boid.velocity.y;
+                avgSpeed += Math.sqrt(boid.velocity.x * boid.velocity.x + boid.velocity.y * boid.velocity.y);
+            }
+            avgVx /= boids.length;
+            avgVy /= boids.length;
+            avgSpeed /= boids.length;
+            
+            const orderParameter = avgSpeed > 0 ? Math.sqrt(avgVx * avgVx + avgVy * avgVy) / avgSpeed : 0;
+            orderParamEl.textContent = orderParameter.toFixed(2);
+            avgSpeedEl.textContent = avgSpeed.toFixed(2);
+        }
+        
+        function updateDisplay(id, value) {
+            const displayEl = document.getElementById(id + '-display');
+            if (displayEl) {
+                displayEl.textContent = value;
+            }
+        }
+        
+        function setPreset(preset) {
+            const presets = {
+                default: { alignment: 1.0, cohesion: 0.5, separation: 1.5, noise: 0.1, speed: 2.0 },
+                chaotic: { alignment: 0.2, cohesion: 0.1, separation: 0.5, noise: 0.6, speed: 3.0 },
+                tight: { alignment: 1.5, cohesion: 1.2, separation: 2.0, noise: 0.05, speed: 1.5 },
+                loose: { alignment: 0.5, cohesion: 0.2, separation: 1.0, noise: 0.3, speed: 2.5 }
+            };
+            
+            const config = presets[preset];
+            if (!config) return;
+            
+            for (let param in config) {
+                const element = document.getElementById(param);
+                if (element) {
+                    element.value = config[param];
+                    updateDisplay(param, config[param]);
+                }
+            }
+        }
+        
+        function resetSimulation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            initSimulation();
+            animate();
+        }
+        
+        // イベントリスナーの設定
+        document.addEventListener('DOMContentLoaded', function() {
+            const controls = ['num-boids', 'speed', 'perception', 'alignment', 'cohesion', 'separation', 'noise', 'speed-noise'];
+            
+            controls.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        updateDisplay(id.replace('-', ''), this.value);
+                        if (id === 'num-boids') {
+                            resetSimulation();
+                        }
+                    });
+                    updateDisplay(id.replace('-', ''), element.value);
+                }
+            });
+            
+            // 初期化を少し遅らせる
+            setTimeout(() => {
+                initSimulation();
+                animate();
+            }, 100);
+        });
+        
+        window.addEventListener('resize', () => {
+            // ウィンドウリサイズ時の処理
+            const simulation = document.getElementById('simulation');
+            if (!simulation) return;
+            
+            const width = simulation.clientWidth;
+            const height = simulation.clientHeight;
+            
+            for (let boid of boids) {
+                if (boid.position.x > width) boid.position.x = width - 20;
+                if (boid.position.y > height) boid.position.y = height - 20;
+            }
+        });
+    </script>
+</body>
+</html>
