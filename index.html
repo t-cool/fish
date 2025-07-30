@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビチェックモデル - 群れの数理シミュレーション</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #simulation {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #001122 0%, #003366 50%, #004488 100%);
+            overflow: hidden;
+        }
+        
+        #controls {
+            height: 180px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            min-width: 180px;
+            flex-shrink: 0;
+        }
+        
+        .control-group h3 {
+            margin: 0 0 8px 0;
+            color: #64b5f6;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(100, 181, 246, 0.3);
+            padding-bottom: 3px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 10px;
+            color: #ccc;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            background: transparent;
+            -webkit-appearance: none;
+            height: 15px;
+        }
+        
+        input[type="range"]::-webkit-slider-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: 1px solid white;
+        }
+        
+        .value-display {
+            color: #64b5f6;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: right;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 9px;
+            margin: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .boid {
+            position: absolute;
+            transition: none;
+            pointer-events: none;
+        }
+        
+        .boid svg {
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4));
+        }
+        
+        .stats {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        
+        .info-panel {
+            background: rgba(100, 181, 246, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #64b5f6;
+            padding: 8px;
+            min-width: 200px;
+            flex-shrink: 0;
+        }
+        
+        .info-panel h4 {
+            margin: 0 0 5px 0;
+            color: #64b5f6;
+            font-size: 11px;
+        }
+        
+        .info-panel p {
+            margin: 2px 0;
+            font-size: 9px;
+            line-height: 1.2;
+        }
+        
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .preset-buttons button {
+            font-size: 8px;
+            padding: 3px 6px;
+            flex: 1;
+            min-width: 35px;
+        }
+        
+        .reset-button {
+            width: 100%;
+            font-size: 9px;
+            padding: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="simulation">
+            <div class="stats" id="stats">
+                <div><strong>ビチェックモデル</strong></div>
+                <div>個体数: <span id="boid-count">50</span></div>
+                <div>集団運動度: <span id="order-param">0.00</span></div>
+                <div>平均速度: <span id="avg-speed">0.00</span></div>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <div class="control-group">
+                <h3>基本設定</h3>
+                <label>個体数: <span class="value-display" id="num-display">50</span></label>
+                <input type="range" id="num-boids" min="10" max="150" value="50">
+                
+                <label>速度: <span class="value-display" id="speed-display">2.0</span></label>
+                <input type="range" id="speed" min="0.5" max="4.0" step="0.1" value="2.0">
+                
+                <label>知覚範囲: <span class="value-display" id="perception-display">50</span></label>
+                <input type="range" id="perception" min="20" max="80" value="50">
+            </div>
+            
+            <div class="control-group">
+                <h3>群れルール</h3>
+                <label>整列力: <span class="value-display" id="alignment-display">1.0</span></label>
+                <input type="range" id="alignment" min="0" max="2.5" step="0.1" value="1.0">
+                
+                <label>結束力: <span class="value-display" id="cohesion-display">0.5</span></label>
+                <input type="range" id="cohesion" min="0" max="1.5" step="0.1" value="0.5">
+                
+                <label>分離力: <span class="value-display" id="separation-display">1.5</span></label>
+                <input type="range" id="separation" min="0" max="2.5" step="0.1" value="1.5">
+            </div>
+            
+            <div class="control-group">
+                <h3>ノイズ</h3>
+                <label>角度ノイズ: <span class="value-display" id="noise-display">0.1</span></label>
+                <input type="range" id="noise" min="0" max="0.8" step="0.02" value="0.1">
+                
+                <label>速度ノイズ: <span class="value-display" id="speed-noise-display">0.0</span></label>
+                <input type="range" id="speed-noise" min="0" max="0.3" step="0.01" value="0.0">
+            </div>
+            
+            <div class="control-group">
+                <h3>プリセット</h3>
+                <div class="preset-buttons">
+                    <button onclick="setPreset('default')">標準</button>
+                    <button onclick="setPreset('chaotic')">混沌</button>
+                    <button onclick="setPreset('tight')">密集</button>
+                    <button onclick="setPreset('loose')">散開</button>
+                </div>
+                <button onclick="resetSimulation()" class="reset-button">リセット</button>
+            </div>
+            
+            <div class="info-panel">
+                <h4>📚 ビチェックモデル</h4>
+                <p><strong>整列:</strong> 近隣個体と同方向</p>
+                <p><strong>結束:</strong> 群れの中心へ</p>
+                <p><strong>分離:</strong> 衝突回避</p>
+                <p><strong>ノイズ:</strong> 動きの乱雑さ</p>
+                <p style="margin-top: 5px; font-style: italic;">パラメータ調整で群れ行動を観察！</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Boid {
+            constructor(x, y) {
+                this.position = { x: x, y: y };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2
+                };
+                this.acceleration = { x: 0, y: 0 };
+                this.maxSpeed = 2.0;
+                this.maxForce = 0.1;
+                this.element = this.createElement();
+                this.neighbors = [];
+            }
+            
+            createElement() {
+                const boidDiv = document.createElement('div');
+                boidDiv.className = 'boid';
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '14');
+                svg.setAttribute('height', '14');
+                svg.setAttribute('viewBox', '0 0 14 14');
+                
+                const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                triangle.setAttribute('points', '7,1 12,11 7,9 2,11');
+                triangle.setAttribute('fill', `hsl(${Math.random() * 60 + 180}, 70%, 60%)`);
+                triangle.setAttribute('stroke', 'white');
+                triangle.setAttribute('stroke-width', '0.5');
+                
+                svg.appendChild(triangle);
+                boidDiv.appendChild(svg);
+                
+                return boidDiv;
+            }
+            
+            findNeighbors(boids) {
+                this.neighbors = [];
+                const perception = parseFloat(document.getElementById('perception').value) || 50;
+                
+                for (let other of boids) {
+                    if (other !== this) {
+                        const distance = this.distance(this.position, other.position);
+                        if (distance < perception && distance > 0) {
+                            this.neighbors.push(other);
+                        }
+                    }
+                }
+            }
+            
+            align() {
+                if (this.neighbors.length === 0) return { x: 0, y: 0 };
+                
+                let steering = { x: 0, y: 0 };
+                for (let neighbor of this.neighbors) {
+                    steering.x += neighbor.velocity.x;
+                    steering.y += neighbor.velocity.y;
+                }
+                
+                steering.x /= this.neighbors.length;
+                steering.y /= this.neighbors.length;
+                
+                const magnitude = Math.sqrt(steering.x * steering.x + steering.y * steering.y);
+                if (magnitude > 0) {
+                    steering.x = (steering.x / magnitude) * this.maxSpeed;
+                    steering.y = (steering.y / magnitude) * this.maxSpeed;
+                    
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    
+                    this.limit(steering, this.maxForce);
+                }
+                
+                return steering;
+            }
+            
+            cohesion() {
+                if (this.neighbors.length === 0) return { x: 0, y: 0 };
+                
+                let center = { x: 0, y: 0 };
+                for (let neighbor of this.neighbors) {
+                    center.x += neighbor.position.x;
+                    center.y += neighbor.position.y;
+                }
+                
+                center.x /= this.neighbors.length;
+                center.y /= this.neighbors.length;
+                
+                return this.seek(center);
+            }
+            
+            separation() {
+                if (this.neighbors.length === 0) return { x: 0, y: 0 };
+                
+                const desiredSeparation = 25;
+                let steering = { x: 0, y: 0 };
+                let count = 0;
+                
+                for (let neighbor of this.neighbors) {
+                    const distance = this.distance(this.position, neighbor.position);
+                    if (distance < desiredSeparation && distance > 0) {
+                        let diff = {
+                            x: this.position.x - neighbor.position.x,
+                            y: this.position.y - neighbor.position.y
+                        };
+                        
+                        diff.x /= distance;
+                        diff.y /= distance;
+                        
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        count++;
+                    }
+                }
+                
+                if (count > 0) {
+                    steering.x /= count;
+                    steering.y /= count;
+                    
+                    const magnitude = Math.sqrt(steering.x * steering.x + steering.y * steering.y);
+                    if (magnitude > 0) {
+                        steering.x = (steering.x / magnitude) * this.maxSpeed;
+                        steering.y = (steering.y / magnitude) * this.maxSpeed;
+                        
+                        steering.x -= this.velocity.x;
+                        steering.y -= this.velocity.y;
+                        
+                        this.limit(steering, this.maxForce);
+                    }
+                }
+                
+                return steering;
+            }
+            
+            seek(target) {
+                let desired = {
+                    x: target.x - this.position.x,
+                    y: target.y - this.position.y
+                };
+                
+                const magnitude = Math.sqrt(desired.x * desired.x + desired.y * desired.y);
+                if (magnitude > 0) {
+                    desired.x = (desired.x / magnitude) * this.maxSpeed;
+                    desired.y = (desired.y / magnitude) * this.maxSpeed;
+                }
+                
+                let steering = {
+                    x: desired.x - this.velocity.x,
+                    y: desired.y - this.velocity.y
+                };
+                
+                this.limit(steering, this.maxForce);
+                return steering;
+            }
+            
+            limit(vector, max) {
+                const magnitude = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+                if (magnitude > max) {
+                    vector.x = (vector.x / magnitude) * max;
+                    vector.y = (vector.y / magnitude) * max;
+                }
+            }
+            
+            distance(a, b) {
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            flock(boids) {
+                this.findNeighbors(boids);
+                
+                const alignment = this.align();
+                const cohesion = this.cohesion();
+                const separation = this.separation();
+                
+                const alignmentWeight = parseFloat(document.getElementById('alignment').value) || 1.0;
+                const cohesionWeight = parseFloat(document.getElementById('cohesion').value) || 0.5;
+                const separationWeight = parseFloat(document.getElementById('separation').value) || 1.5;
+                
+                this.acceleration.x = alignment.x * alignmentWeight + cohesion.x * cohesionWeight + separation.x * separationWeight;
+                this.acceleration.y = alignment.y * alignmentWeight + cohesion.y * cohesionWeight + separation.y * separationWeight;
+            }
+            
+            update() {
+                this.maxSpeed = parseFloat(document.getElementById('speed').value) || 2.0;
+                
+                // ノイズの追加
+                const angleNoise = parseFloat(document.getElementById('noise').value) || 0.1;
+                const speedNoise = parseFloat(document.getElementById('speed-noise').value) || 0.0;
+                
+                if (angleNoise > 0) {
+                    const noise = (Math.random() - 0.5) * angleNoise;
+                    const currentAngle = Math.atan2(this.velocity.y, this.velocity.x);
+                    const newAngle = currentAngle + noise;
+                    const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                    this.velocity.x = Math.cos(newAngle) * speed;
+                    this.velocity.y = Math.sin(newAngle) * speed;
+                }
+                
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+                
+                // 速度ノイズ
+                if (speedNoise > 0) {
+                    this.velocity.x += (Math.random() - 0.5) * speedNoise;
+                    this.velocity.y += (Math.random() - 0.5) * speedNoise;
+                }
+                
+                const magnitude = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+                if (magnitude > this.maxSpeed) {
+                    this.velocity.x = (this.velocity.x / magnitude) * this.maxSpeed;
+                    this.velocity.y = (this.velocity.y / magnitude) * this.maxSpeed;
+                }
+                
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+                
+                this.edges();
+                this.show();
+            }
+            
+            edges() {
+                const margin = 20;
+                const simElement = document.getElementById('simulation');
+                const width = simElement ? simElement.clientWidth : window.innerWidth;
+                const height = simElement ? simElement.clientHeight : window.innerHeight - 200;
+                
+                if (this.position.x < -margin) this.position.x = width + margin;
+                if (this.position.x > width + margin) this.position.x = -margin;
+                if (this.position.y < -margin) this.position.y = height + margin;
+                if (this.position.y > height + margin) this.position.y = -margin;
+            }
+            
+            show() {
+                const angle = Math.atan2(this.velocity.y, this.velocity.x) * 180 / Math.PI + 90;
+                this.element.style.left = this.position.x + 'px';
+                this.element.style.top = this.position.y + 'px';
+                this.element.style.transform = `rotate(${angle}deg)`;
+            }
+        }
+        
+        let boids = [];
+        let animationId;
+        
+        function initSimulation() {
+            const simulation = document.getElementById('simulation');
+            if (!simulation) return;
+            
+            // 既存のboidを削除
+            document.querySelectorAll('.boid').forEach(el => el.remove());
+            
+            boids = [];
+            const numBoids = parseInt(document.getElementById('num-boids').value) || 50;
+            
+            for (let i = 0; i < numBoids; i++) {
+                const x = Math.random() * simulation.clientWidth;
+                const y = Math.random() * simulation.clientHeight;
+                const boid = new Boid(x, y);
+                boids.push(boid);
+                simulation.appendChild(boid.element);
+            }
+        }
+        
+        function animate() {
+            if (boids.length === 0) return;
+            
+            for (let boid of boids) {
+                boid.flock(boids);
+                boid.update();
+            }
+            
+            updateStats();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function updateStats() {
+            const boidCountEl = document.getElementById('boid-count');
+            const orderParamEl = document.getElementById('order-param');
+            const avgSpeedEl = document.getElementById('avg-spe
