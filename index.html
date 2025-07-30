@@ -33,16 +33,28 @@
         }
         
         #controls {
-            height: 180px;
+            height: auto;
+            min-height: 120px;
+            max-height: 250px;
             background: rgba(0, 0, 0, 0.9);
             color: white;
             padding: 10px;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: auto;
             backdrop-filter: blur(10px);
             display: flex;
             gap: 15px;
             align-items: flex-start;
+        }
+        
+        @media (max-width: 768px) {
+            #controls {
+                flex-direction: column;
+                gap: 10px;
+                height: auto;
+                max-height: 300px;
+                padding: 8px;
+            }
         }
         
         .control-group {
@@ -52,6 +64,17 @@
             padding: 10px;
             min-width: 180px;
             flex-shrink: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .control-group {
+                width: 100%;
+                min-width: auto;
+                flex-shrink: 1;
+                margin-bottom: 5px;
+                display: flex;
+                flex-direction: column;
+            }
         }
         
         .control-group h3 {
@@ -141,6 +164,25 @@
             z-index: 10;
         }
         
+        @media (max-width: 768px) {
+            .stats {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 8px;
+                font-size: 11px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            
+            .stats div {
+                margin: 2px 5px;
+                white-space: nowrap;
+            }
+        }
+        
         .info-panel {
             background: rgba(100, 181, 246, 0.1);
             border-radius: 8px;
@@ -148,6 +190,14 @@
             padding: 8px;
             min-width: 200px;
             flex-shrink: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .info-panel {
+                width: 100%;
+                min-width: auto;
+                order: -1;
+            }
         }
         
         .info-panel h4 {
@@ -176,10 +226,84 @@
             min-width: 35px;
         }
         
+        @media (max-width: 768px) {
+            .preset-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 3px;
+            }
+            
+            .preset-buttons button {
+                font-size: 10px;
+                padding: 6px 8px;
+                min-width: auto;
+            }
+        }
+        
         .reset-button {
             width: 100%;
             font-size: 9px;
             padding: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .reset-button {
+                font-size: 12px;
+                padding: 8px;
+                margin-top: 5px;
+            }
+        }
+        
+        /* モバイル用の追加スタイル */
+        @media (max-width: 768px) {
+            label {
+                font-size: 12px;
+                margin-bottom: 5px;
+            }
+            
+            .value-display {
+                font-size: 12px;
+            }
+            
+            .control-group h3 {
+                font-size: 14px;
+                margin-bottom: 8px;
+            }
+            
+            input[type="range"] {
+                height: 20px;
+                margin-bottom: 8px;
+            }
+            
+            input[type="range"]::-webkit-slider-thumb {
+                height: 16px;
+                width: 16px;
+            }
+            
+            button {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
+        
+        /* 横向きモバイル対応 */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #controls {
+                flex-direction: row;
+                max-height: 200px;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            
+            .control-group {
+                width: auto;
+                min-width: 150px;
+            }
+            
+            .info-panel {
+                order: 0;
+                min-width: 180px;
+            }
         }
     </style>
 </head>
